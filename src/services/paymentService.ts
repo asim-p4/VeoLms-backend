@@ -7,7 +7,7 @@
  */
 import { Payment, IPayment } from "../models/Payment";
 import { Course } from "../models/Course";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { Types } from "mongoose";
 import { enroll } from "./enrollmentService";
@@ -24,11 +24,11 @@ import { env } from "../config/env";
 export async function createPaymentIntent(userId: string, courseId: string) {
   const course = await Course.findById(courseId);
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   if (course.price === 0) {
-    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Course is free. No payment required.");
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "Course is free. No payment required.");
   }
 
   const amountToCharge = course.discountPrice || course.price;
@@ -91,3 +91,4 @@ export async function handleWebhook(payload: any, signature: string) {
 
   return { received: true };
 }
+

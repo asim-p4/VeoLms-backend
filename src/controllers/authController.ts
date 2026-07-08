@@ -25,7 +25,10 @@ import { env } from "../config/env";
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === "production",
-  sameSite: "strict" as const,
+  // 'strict' blocks cookies on cross-origin requests (different ports in dev).
+  // 'lax' allows cookies from same-site navigation (works for localhost dev).
+  // 'none' would be needed for a fully separate domain — requires secure:true.
+  sameSite: (env.NODE_ENV === "production" ? "strict" : "lax") as "strict" | "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
   path: "/api/auth", // Only sent on auth routes — minimizes exposure
 };
@@ -139,3 +142,4 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     .status(HTTP_STATUS.OK)
     .json(ApiResponse(HTTP_STATUS.OK, "User fetched successfully", { user }));
 });
+

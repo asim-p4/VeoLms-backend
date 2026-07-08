@@ -10,7 +10,7 @@
  */
 import { Enrollment, IEnrollment } from "../models/Entrollment";
 import { Course } from "../models/Course";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { Types } from "mongoose";
 
@@ -34,16 +34,16 @@ export async function enroll(
   // Verify the course exists and is published
   const course = await Course.findById(courseId);
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   if (!course.isPublished) {
-    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "This course is not available for enrollment");
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "This course is not available for enrollment");
   }
 
   // Require payment for paid courses
   if (course.price > 0 && !paymentId) {
-    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Payment is required for this course");
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "Payment is required for this course");
   }
 
   // Check if already enrolled — return existing record (idempotent)
@@ -141,3 +141,4 @@ export async function getAllEnrollments(params: {
 
   return { enrollments, total };
 }
+

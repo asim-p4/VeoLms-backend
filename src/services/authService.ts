@@ -1,7 +1,7 @@
 import { User, IUser } from "../models/User";
 import { RefreshToken } from "../models/RefreshToken";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { SignupInput, LoginInput, AuthTokens } from "../types/authTypes";
 
 /**
@@ -25,8 +25,7 @@ async function generateTokens(user: IUser): Promise<AuthTokens> {
   await RefreshToken.create({
     userId: user._id,
     token: refreshToken,
-    // expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    expiresAt: new Date(Date.now() + 60 * 1000), // 60 sec
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
   });
 
   return { accessToken, refreshToken };
@@ -46,10 +45,9 @@ export async function userSignup(
   // Check for existing user to prevent duplicate accounts
   const existingUser = await User.findOne({ email: input.email });
   if (existingUser) {
-    throw {
-      statusCode: 409,
-      message: "An account with this email already exists",
-    };
+    // Fixed: was `throw { statusCode, message }` plain object which bypassed the
+    // global error handler's instanceof check, causing a 500 instead of 409.
+    throw createApiError(409, "An account with this email already exists");
   }
 
   // Create user (password is hashed by Mongoose pre-save hook)
@@ -80,13 +78,12 @@ export async function login(
 
   // Use generic error message to prevent user enumeration attacks
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    throw createApiError(401, "Invalid email or password");
   }
 
-  // Compare provided password with stored hash
   const isPasswordValid = await user.comparePassword(input.password);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid email or password");
+    throw createApiError(401, "Invalid email or password");
   }
 
   // Generate new tokens for this session
@@ -109,22 +106,19 @@ export async function refreshToken(
   // Verify refresh token exists in database
   const storedToken = await RefreshToken.findOne({ token: oldRefreshToken });
   if (!storedToken) {
-    throw new ApiError(401, "Invalid refresh token");
+    throw createApiError(401, "Invalid refresh token");
   }
 
-  // Check if token has expired
   if (storedToken.expiresAt < new Date()) {
     await RefreshToken.deleteOne({ _id: storedToken._id });
-    throw new ApiError(401, "Refresh token expired");
+    throw createApiError(401, "Refresh token expired");
   }
 
-  // Token rotation: delete old token to prevent reuse
   await RefreshToken.deleteOne({ _id: storedToken._id });
 
-  // Verify user still exists
   const user = await User.findById(storedToken.userId);
   if (!user) {
-    throw new ApiError(401, "User not found");
+    throw createApiError(401, "User not found");
   }
 
   // Generate new token pair
@@ -150,7 +144,7 @@ export async function logout(refreshToken: string): Promise<void> {
 export async function getCurrentUser(userId: string): Promise<Partial<IUser>> {
   const user = await User.findById(userId);
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw createApiError(404, "User not found");
   }
   return user.toJSON() as unknown as Partial<IUser>;
 }

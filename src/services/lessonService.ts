@@ -9,7 +9,7 @@
  */
 import { Lesson, ILesson } from "../models/Lesson";
 import { Section } from "../models/Section";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 
 /** Input type for lesson creation */
@@ -43,7 +43,7 @@ export async function createLesson(
   // Verify the section exists and get the course ID for denormalization
   const section = await Section.findById(sectionId);
   if (!section) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Section not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Section not found");
   }
 
   // Auto-assign order within this section
@@ -80,7 +80,7 @@ export async function updateLesson(
   );
 
   if (!lesson) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
   }
 
   return lesson;
@@ -96,7 +96,7 @@ export async function deleteLesson(lessonId: string): Promise<void> {
   const lesson = await Lesson.findByIdAndDelete(lessonId);
 
   if (!lesson) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
   }
 }
 
@@ -112,8 +112,9 @@ export async function getLessonById(lessonId: string): Promise<ILesson> {
   const lesson = await Lesson.findById(lessonId);
 
   if (!lesson) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
   }
 
   return lesson;
 }
+

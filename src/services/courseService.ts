@@ -14,7 +14,7 @@ import { Course, ICourse } from "../models/Course";
 import { Section } from "../models/Section";
 import { Lesson } from "../models/Lesson";
 import { Enrollment } from "../models/Entrollment";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { Types } from "mongoose";
 
@@ -170,7 +170,7 @@ export async function getCourseBySlug(slug: string): Promise<ICourse> {
     });
 
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   return course;
@@ -201,7 +201,7 @@ export async function getFeaturedCourses(limit: number = 8): Promise<ICourse[]> 
  */
 export async function searchCourses(query: string): Promise<ICourse[]> {
   if (!query || query.trim().length < 2) {
-    throw new ApiError(HTTP_STATUS.BAD_REQUEST, "Search query must be at least 2 characters");
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "Search query must be at least 2 characters");
   }
 
   const courses = await Course.find({
@@ -261,7 +261,7 @@ export async function updateCourse(
   ).populate("instructor", "name avatar");
 
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   return course;
@@ -278,7 +278,7 @@ export async function deleteCourse(id: string): Promise<void> {
   const course = await Course.findById(id);
 
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   // Cascade: delete all lessons in this course
@@ -314,7 +314,7 @@ export async function getCourseByIdForAdmin(id: string): Promise<ICourse> {
     });
 
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   return course;
@@ -357,3 +357,4 @@ export async function getAdminCourses(params: {
     totalPages: Math.ceil(total / limit),
   };
 }
+

@@ -11,7 +11,7 @@
 import { Section, ISection } from "../models/Section";
 import { Lesson } from "../models/Lesson";
 import { Course } from "../models/Course";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 
 /** Input type for section creation */
@@ -41,7 +41,7 @@ export async function createSection(
   // Verify the course exists before creating a section
   const course = await Course.findById(courseId);
   if (!course) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
   }
 
   // Auto-assign order: count existing sections + 1
@@ -76,7 +76,7 @@ export async function updateSection(
   );
 
   if (!section) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Section not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Section not found");
   }
 
   return section;
@@ -94,7 +94,7 @@ export async function deleteSection(sectionId: string): Promise<void> {
   const section = await Section.findById(sectionId);
 
   if (!section) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Section not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Section not found");
   }
 
   // Cascade: delete all lessons within this section
@@ -103,3 +103,4 @@ export async function deleteSection(sectionId: string): Promise<void> {
   // Delete the section itself
   await Section.findByIdAndDelete(sectionId);
 }
+

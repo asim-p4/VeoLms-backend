@@ -12,7 +12,7 @@
 import { Progress, IProgress } from "../models/Progress";
 import { Enrollment } from "../models/Entrollment";
 import { Lesson } from "../models/Lesson";
-import { ApiError } from "../utils/ApiError";
+import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { Types } from "mongoose";
 
@@ -41,7 +41,7 @@ export async function saveProgress(
   // Fetch lesson to determine completion threshold (80% of duration)
   const lesson = await Lesson.findById(lessonId);
   if (!lesson) {
-    throw new ApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Lesson not found");
   }
 
   // Calculate completion: lesson is "done" when 80% of duration has been watched
@@ -190,3 +190,4 @@ export async function getRecentlyWatched(
 
   return recent;
 }
+
