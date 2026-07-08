@@ -1,0 +1,29 @@
+import { z } from "zod";
+
+const envSchema = z.object({
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  PORT: z.string().default("5000"),
+  MONGODB_URI: z.string().url(),
+  ACCESS_TOKEN_SECRET: z.string().min(32),
+  REFRESH_TOKEN_SECRET: z.string().min(32),
+  ACCESS_TOKEN_EXPIRY: z.string().default("15m"),
+  REFRESH_TOKEN_EXPIRY: z.string().default("7d"),
+  CORS_ORIGIN: z.string().url(),
+  ADMIN_EMAIL: z.string().email(),
+  ADMIN_PASSWORD: z.string().min(8),
+  RATE_LIMIT_WINDOW_MS: z.string().default("900000"),
+  RATE_LIMIT_MAX_REQUESTS: z.string().default("100"),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+});
+
+export const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error("❌ Invalid environment variables:", parsed.error.format());
+  process.exit(1);
+}
+
+export const env = parsed.data;

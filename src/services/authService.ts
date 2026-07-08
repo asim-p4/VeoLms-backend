@@ -1,0 +1,156 @@
+import { User, IUser } from "../models/User";
+import { RefreshToken } from "../models/RefreshToken";
+import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
+import { ApiError } from "../utils/ApiError";
+import { SignupInput, LoginInput, AuthTokens } from "../types/authTypes";
+
+/**
+ * Generate access and refresh tokens for a user
+ * Stores refresh token in database for later verification
+ *
+ * @param user - User document from MongoDB
+ * @returns Access and refresh tokens
+ */
+async function generateTokens(user: IUser): Promise<AuthTokens> {
+  const payload = {
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  // Store refresh token in database for verification and revocation
+  await RefreshToken.create({
+    userId: user._id,
+    token: refreshToken,
+    // expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    expiresAt: new Date(Date.now() + 60 * 1000), // 60 sec
+  });
+
+  return { accessToken, refreshToken };
+}
+
+/**
+ * Register a new user account
+ *
+ * @param input - User signup data (name, email, password)
+ * @returns Created user and authentication tokens
+ * @throws ApiError 409 if email already exists
+ */
+export async function userSignup(
+  input: SignupInput,
+): Promise<{ user: IUser; tokens: AuthTokens }> {
+  const { email, name, password } = input;
+  // Check for existing user to prevent duplicate accounts
+  const existingUser = await User.findOne({ email: input.email });
+  if (existingUser) {
+    throw {
+      statusCode: 409,
+      message: "An account with this email already exists",
+    };
+  }
+
+  // Create user (password is hashed by Mongoose pre-save hook)
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+  });
+  // Generate authentication tokens
+  const tokens = await generateTokens(user);
+
+  return { user, tokens };
+}
+
+/**
+ * Authenticate user and return tokens
+ *
+ * @param input - Login credentials (email, password)
+ * @returns User data and authentication tokens
+ * @throws ApiError 401 if credentials are invalid
+ */
+export async function login(
+  input: LoginInput,
+): Promise<{ user: Partial<IUser>; tokens: AuthTokens }> {
+  // Find user and include password field for comparison
+  const user = await User.findOne({ email: input.email }).select("+password");
+
+  // Use generic error message to prevent user enumeration attacks
+  if (!user) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  // Compare provided password with stored hash
+  const isPasswordValid = await user.comparePassword(input.password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  // Generate new tokens for this session
+  const tokens = await generateTokens(user);
+
+  return { user: user.toJSON() as unknown as Partial<IUser>, tokens };
+}
+
+/**
+ * Refresh expired access token using refresh token
+ * Implements token rotation: old refresh token is invalidated
+ *
+ * @param oldRefreshToken - Current refresh token
+ * @returns New pair of tokens
+ * @throws ApiError 401 if token is invalid or expired
+ */
+export async function refreshToken(
+  oldRefreshToken: string,
+): Promise<AuthTokens> {
+  // Verify refresh token exists in database
+  const storedToken = await RefreshToken.findOne({ token: oldRefreshToken });
+  if (!storedToken) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  // Check if token has expired
+  if (storedToken.expiresAt < new Date()) {
+    await RefreshToken.deleteOne({ _id: storedToken._id });
+    throw new ApiError(401, "Refresh token expired");
+  }
+
+  // Token rotation: delete old token to prevent reuse
+  await RefreshToken.deleteOne({ _id: storedToken._id });
+
+  // Verify user still exists
+  const user = await User.findById(storedToken.userId);
+  if (!user) {
+    throw new ApiError(401, "User not found");
+  }
+
+  // Generate new token pair
+  return generateTokens(user);
+}
+
+/**
+ * Logout user by invalidating their refresh token
+ *
+ * @param refreshToken - Token to invalidate
+ */
+export async function logout(refreshToken: string): Promise<void> {
+  await RefreshToken.deleteOne({ token: refreshToken });
+}
+
+/**
+ * Get current user by ID
+ *
+ * @param userId - User ID from JWT payload
+ * @returns User data without sensitive fields
+ * @throws ApiError 404 if user not found
+ */
+export async function getCurrentUser(userId: string): Promise<Partial<IUser>> {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  return user.toJSON() as unknown as Partial<IUser>;
+}
