@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "VeoLMS - Learning Management System Backend",
   "main": "dist/server.js",
-  "type": "module",
   "scripts": {
     "dev": "tsx --watch --env-file=.env src/server.ts",
     "build": "tsc",
