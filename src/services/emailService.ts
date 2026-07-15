@@ -1,18 +1,24 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 
-const resend = new Resend(env.RESEND_API_KEY);
-
 export async function sendVerificationEmail(email: string, code: string) {
-  if (!env.RESEND_API_KEY || !env.FROM_EMAIL) {
+  if (!env.SMTP_USER || !env.SMTP_PASS || !env.FROM_EMAIL) {
     console.warn("Email service is not configured. Verification code:", code);
     return;
   }
 
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+    },
+  });
+
   try {
-    const { data, error } = await resend.emails.send({
+    await transporter.sendMail({
       from: env.FROM_EMAIL,
-      to: [email],
+      to: email,
       subject: 'Verify your VeoLMS Account',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -27,13 +33,8 @@ export async function sendVerificationEmail(email: string, code: string) {
         </div>
       `,
     });
-
-    if (error) {
-      console.error("Failed to send verification email:", error);
-      throw error;
-    }
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error sending email via nodemailer:", error);
     throw error;
   }
 }

@@ -25,7 +25,8 @@ const envSchema = z.object({
   R2_PUBLIC_URL: z.string().url().optional(),
   R2_PRESIGN_EXPIRY_SECONDS: z.string().default("3600"),
   // Email Service
-  RESEND_API_KEY: z.string().optional(),
+  SMTP_USER: z.string().email().optional(),
+  SMTP_PASS: z.string().optional(),
   FROM_EMAIL: z.string().email().optional(),
 });
 
