@@ -29,8 +29,8 @@ const app = express();
 // 1. Security headers — removes X-Powered-By, sets CSP, HSTS, etc.
 app.use(
   helmet({
-    // Allow inline scripts for Vite dev (relax in development only)
-    contentSecurityPolicy: env.NODE_ENV === "production" ? undefined : false,
+    // In production, we typically wouldn't disable CSP completely, but as per existing logic, we set undefined
+    contentSecurityPolicy: undefined,
   }),
 );
 
@@ -59,8 +59,8 @@ app.use(express.json({ limit: "10kb" }));
 // 5. Cookie parser — required for reading HttpOnly refresh token cookie
 app.use(cookieParser());
 
-// 6. HTTP request logging
-app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+// 6. HTTP request logging (always use combined format in production)
+app.use(morgan("combined"));
 
 // 7. Global rate limiting (100 requests per 15 minutes per IP)
 app.use(globalRateLimiter);

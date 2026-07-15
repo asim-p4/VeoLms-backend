@@ -8,8 +8,8 @@ import { env } from "../config/env";
 export const globalRateLimiter = rateLimit({
   windowMs: parseInt(env.RATE_LIMIT_WINDOW_MS),
   // In development, use a very high limit to avoid dev friction.
-  // The env default (100) is used in production.
-  max: env.NODE_ENV === 'development' ? 1000 : parseInt(env.RATE_LIMIT_MAX_REQUESTS),
+  // Limit each IP to configured max requests per windowMs
+  max: parseInt(env.RATE_LIMIT_MAX_REQUESTS),
   message: {
     success: false,
     message: "Too many requests, please try again later",
@@ -23,12 +23,11 @@ export const globalRateLimiter = rateLimit({
  * Strict in production to prevent brute force; permissive in development.
  */
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  // In development: 100 attempts. In production: strict 5 attempts.
-  max: env.NODE_ENV === 'development' ? 100 : 5,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 requests per IP
   message: {
     success: false,
-    message: "Too many login attempts, please try again after 15 minutes",
+    message: "Too many login attempts, please try again after 1 hour",
   },
   standardHeaders: true,
   legacyHeaders: false,

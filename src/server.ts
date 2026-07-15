@@ -9,7 +9,7 @@ const startServer = async () => {
 
     app.listen(parseInt(env.PORT), () => {
       // logger.info(`Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
-      console.log(`Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
+      console.log(`Server running in production mode on port ${env.PORT}`);
     });
   } catch (error) {
     // logger.error("Failed to start server:", error);

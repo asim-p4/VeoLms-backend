@@ -1,9 +1,8 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+  // NODE_ENV removed since we are strictly hardcoding production logic
+  // (Render auto-sets this, but we no longer need to parse/validate it)
   PORT: z.string().default("5000"),
   MONGODB_URI: z.string().url(),
   ACCESS_TOKEN_SECRET: z.string().min(32),

@@ -60,15 +60,12 @@ export const errorHandler = (
       message = "Token expired";
     } else {
       // Unknown programmer error — hide internal details in production
-      message =
-        env.NODE_ENV === "development"
-          ? anyErr.message
-          : "Internal server error";
+      message = "Internal server error";
     }
   }
 
   // Log all errors in development for debugging; in production log only 5xx
-  if (env.NODE_ENV === "development" || statusCode >= 500) {
+  if (statusCode >= 500) {
     console.error(`[Error ${statusCode}]`, err);
   }
 

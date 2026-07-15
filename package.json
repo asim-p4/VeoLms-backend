@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx --watch --env-file=.env src/server.ts",
-    "build": "tsc",
+    "build": "npm install --include=dev && tsc",
     "start": "node dist/server.js",
     "seed:admin": "tsx --env-file=.env src/scripts/seedAdmin.ts",
     "db:clean": "tsx --env-file=.env src/scripts/cleanDatabase.ts",
