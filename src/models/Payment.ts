@@ -6,7 +6,7 @@
  * - Payment is created when a PaymentIntent is initiated, updated on webhook events.
  * - Enrollment is only created AFTER payment status becomes 'succeeded'.
  * - stripePaymentIntentId is indexed for fast webhook lookups.
- * - Amount stored in paise (same unit as course.price) for consistency.
+ * - Amount stored in cents (same unit as course.price) for consistency.
  */
 import mongoose, { Document, Schema, Types } from "mongoose";
 
@@ -24,7 +24,7 @@ export type PaymentStatus = (typeof PAYMENT_STATUS)[number];
 export interface IPayment extends Document {
   user: Types.ObjectId;
   course: Types.ObjectId;
-  /** Amount in paise (smallest currency unit) */
+  /** Amount in cents (smallest currency unit) */
   amount: number;
   currency: string;
   /** Stripe's PaymentIntent ID — used to correlate webhook events */
@@ -54,7 +54,7 @@ const paymentSchema = new Schema<IPayment>(
     },
     currency: {
       type: String,
-      default: "inr",
+      default: "usd",
       lowercase: true,
     },
     stripePaymentIntentId: {

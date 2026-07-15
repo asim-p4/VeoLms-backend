@@ -5,17 +5,19 @@
  */
 import { Router } from "express";
 import { auth } from "../middlewares/authMiddleware";
+import { studentOnly } from "../middlewares/studentMiddleware";
 import { validate } from "../middlewares/validateMiddleware";
 import {
   postSaveProgress,
   getProgressForCourse,
   getRecentProgress,
+  getProgressStats,
 } from "../controllers/progressController";
 import { z } from "zod";
 
 const router = Router();
 
-router.use(auth);
+router.use(auth, studentOnly);
 
 const saveProgressSchema = z.object({
   body: z.object({
@@ -28,6 +30,7 @@ const saveProgressSchema = z.object({
 
 router.post("/", validate(saveProgressSchema), postSaveProgress);
 router.get("/recent", getRecentProgress);
+router.get("/stats", getProgressStats);
 router.get("/:courseId", getProgressForCourse);
 
 export default router;

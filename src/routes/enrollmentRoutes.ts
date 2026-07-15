@@ -5,13 +5,14 @@
  */
 import { Router } from "express";
 import { auth } from "../middlewares/authMiddleware";
+import { studentOnly } from "../middlewares/studentMiddleware";
 import { validate } from "../middlewares/validateMiddleware";
 import { postEnroll, getMyEnrollments } from "../controllers/enrollmentController";
 import { z } from "zod";
 
 const router = Router();
 
-router.use(auth);
+router.use(auth, studentOnly);
 
 // Schema for enrollment request
 const enrollSchema = z.object({

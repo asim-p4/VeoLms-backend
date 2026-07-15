@@ -12,6 +12,7 @@
 import { Progress, IProgress } from "../models/Progress";
 import { Enrollment } from "../models/Entrollment";
 import { Lesson } from "../models/Lesson";
+import { Course } from "../models/Course";
 import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { Types } from "mongoose";
@@ -135,9 +136,19 @@ export async function getCourseProgress(
   userId: string,
   courseId: string,
 ): Promise<IProgress[]> {
+  let resolvedCourseId = courseId;
+
+  if (!Types.ObjectId.isValid(courseId)) {
+    const course = await Course.findOne({ slug: courseId }).select("_id");
+    if (!course) {
+      throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
+    }
+    resolvedCourseId = course._id.toString();
+  }
+
   const progress = await Progress.find({
     user: new Types.ObjectId(userId),
-    course: new Types.ObjectId(courseId),
+    course: new Types.ObjectId(resolvedCourseId),
   }).select("lesson isCompleted watchedSeconds lastPosition completedAt");
 
   return progress;
@@ -189,5 +200,24 @@ export async function getRecentlyWatched(
     .limit(5);
 
   return recent;
+}
+
+/**
+ * Gets overall learning stats for the student dashboard.
+ * 
+ * @param userId - Student's MongoDB ObjectId string
+ * @returns Stats object with completedLessons and hoursLearned
+ */
+export async function getStats(userId: string): Promise<{ completedLessons: number; hoursLearned: number }> {
+  const completedLessons = await Progress.countDocuments({
+    user: new Types.ObjectId(userId),
+    isCompleted: true,
+  });
+
+  const progressRecords = await Progress.find({ user: new Types.ObjectId(userId) });
+  const totalSeconds = progressRecords.reduce((acc, curr) => acc + curr.watchedSeconds, 0);
+  const hoursLearned = Math.round((totalSeconds / 3600) * 10) / 10; // Round to 1 decimal place
+
+  return { completedLessons, hoursLearned };
 }
 

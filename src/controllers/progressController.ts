@@ -10,6 +10,7 @@ import {
   saveProgress,
   getCourseProgress,
   getRecentlyWatched,
+  getStats,
 } from "../services/progressService";
 
 /**
@@ -51,5 +52,19 @@ export const getRecentProgress = asyncHandler(async (req: Request, res: Response
 
   res.status(HTTP_STATUS.OK).json(
     ApiResponse(HTTP_STATUS.OK, "Recent progress fetched", { recent })
+  );
+});
+
+/**
+ * GET /api/progress/stats
+ * Gets overall learning stats for the dashboard.
+ */
+export const getProgressStats = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+
+  const stats = await getStats(userId);
+
+  res.status(HTTP_STATUS.OK).json(
+    ApiResponse(HTTP_STATUS.OK, "Stats fetched", { stats })
   );
 });

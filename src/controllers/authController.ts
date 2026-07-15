@@ -12,11 +12,15 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
   userSignup,
+  verifyEmail as verifyEmailService,
+  resendVerificationCode as resendVerificationCodeService,
   login as loginService,
+  adminLogin as adminLoginService,
   refreshToken as refreshTokenService,
   logout as logoutService,
   getCurrentUser,
 } from "../services/authService";
+import { generateUploadPresignedUrl, UploadType } from "../services/storageService";
 import { ApiResponse } from "../utils/ApiResponse";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { env } from "../config/env";
@@ -33,23 +37,46 @@ const REFRESH_COOKIE_OPTIONS = {
   path: "/api/auth", // Only sent on auth routes — minimizes exposure
 };
 
-/**
- * POST /api/auth/signup
- * Registers a new student account (admin cannot self-register).
- *
- * @returns 201 with user object and accessToken; sets refreshToken cookie
- */
 export const signup = asyncHandler(async (req: Request, res: Response) => {
-  const { user, tokens } = await userSignup(req.body);
+  const result = await userSignup(req.body);
 
-  // Set refresh token in HttpOnly cookie for automatic re-auth
+  res.status(HTTP_STATUS.ACCEPTED).json(
+    ApiResponse(HTTP_STATUS.ACCEPTED, result.message)
+  );
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code } = req.body;
+  
+  if (!email || !code) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(ApiResponse(HTTP_STATUS.BAD_REQUEST, "Email and code are required"));
+    return;
+  }
+
+  const { user, tokens } = await verifyEmailService(email, code);
+
   res.cookie("refreshToken", tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
 
-  res.status(HTTP_STATUS.CREATED).json(
-    ApiResponse(HTTP_STATUS.CREATED, "Account created successfully", {
+  res.status(HTTP_STATUS.OK).json(
+    ApiResponse(HTTP_STATUS.OK, "Email verified successfully", {
       user,
       accessToken: tokens.accessToken,
     }),
+  );
+});
+
+export const resendVerificationCode = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(ApiResponse(HTTP_STATUS.BAD_REQUEST, "Email is required"));
+    return;
+  }
+
+  const result = await resendVerificationCodeService(email);
+
+  res.status(HTTP_STATUS.OK).json(
+    ApiResponse(HTTP_STATUS.OK, result.message)
   );
 });
 
@@ -142,4 +169,60 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     .status(HTTP_STATUS.OK)
     .json(ApiResponse(HTTP_STATUS.OK, "User fetched successfully", { user }));
 });
+
+/**
+ * POST /api/auth/admin/login
+ * Admin-only login endpoint. Validates credentials AND enforces role === 'admin'.
+ * Returns 403 if a student account tries to use this endpoint.
+ *
+ * @returns 200 with admin user object and accessToken; sets refreshToken cookie
+ */
+export const adminLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  // Delegates to adminLogin service — throws 401 on bad creds, 403 on wrong role
+  const { user, tokens } = await adminLoginService({ email, password });
+
+  res.cookie("refreshToken", tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+
+  res.status(HTTP_STATUS.OK).json(
+    ApiResponse(HTTP_STATUS.OK, "Admin login successful", {
+      user,
+      accessToken: tokens.accessToken,
+    }),
+  );
+});
+
+/**
+ * POST /api/auth/upload/presign
+ * Generates a presigned PUT URL for public avatar uploads (e.g. during signup).
+ */
+export const postGeneratePublicUploadUrl = asyncHandler(async (req: Request, res: Response) => {
+  const { type, filename, contentType } = req.body;
+
+  if (type !== "picture") {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(
+      ApiResponse(HTTP_STATUS.BAD_REQUEST, "Public uploads only support 'picture' type")
+    );
+    return;
+  }
+
+  if (!filename || !contentType) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(
+      ApiResponse(HTTP_STATUS.BAD_REQUEST, "Missing required fields: filename, contentType")
+    );
+    return;
+  }
+
+  const { uploadUrl, key, publicUrl } = await generateUploadPresignedUrl(
+    type as UploadType,
+    filename,
+    contentType
+  );
+
+  res.status(HTTP_STATUS.OK).json(
+    ApiResponse(HTTP_STATUS.OK, "Presigned URL generated", { uploadUrl, key, publicUrl })
+  );
+});
+
 

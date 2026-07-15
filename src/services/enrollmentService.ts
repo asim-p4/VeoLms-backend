@@ -82,7 +82,7 @@ export async function getMyCourses(
 ): Promise<IEnrollment[]> {
   const enrollments = await Enrollment.find({
     user: new Types.ObjectId(userId),
-    status: "active",
+    status: { $in: ["active", "completed"] },
   })
     .populate({
       path: "course",
@@ -110,7 +110,8 @@ export async function checkEnrollment(
   const enrollment = await Enrollment.findOne({
     user: new Types.ObjectId(userId),
     course: new Types.ObjectId(courseId),
-    status: "active",
+    status: { $in: ["active", "completed"] },
+    isActive: true,
   });
 
   return enrollment !== null;

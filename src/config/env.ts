@@ -17,6 +17,16 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().default("100"),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Cloudflare R2 (S3-compatible) storage
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_NAME: z.string().optional(),
+  R2_PUBLIC_URL: z.string().url().optional(),
+  R2_PRESIGN_EXPIRY_SECONDS: z.string().default("3600"),
+  // Email Service
+  RESEND_API_KEY: z.string().optional(),
+  FROM_EMAIL: z.string().email().optional(),
 });
 
 export const parsed = envSchema.safeParse(process.env);

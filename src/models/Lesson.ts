@@ -21,8 +21,7 @@ export interface ILesson extends Document {
   duration: number;
   /** Direct video URL or Cloudflare R2 object key for signed URL generation */
   videoUrl: string;
-  /** Whether non-enrolled users can access this lesson as a preview */
-  isPreview: boolean;
+  isPreview?: boolean;
   section: Types.ObjectId;
   course: Types.ObjectId;
   createdAt: Date;

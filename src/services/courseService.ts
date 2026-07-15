@@ -41,8 +41,6 @@ export type UpdateCourseInput = Partial<CreateCourseInput> & {
 export interface GetCoursesParams {
   page?: number;
   limit?: number;
-  category?: string;
-  level?: string;
   sort?: "newest" | "popular" | "price-asc" | "price-desc" | "rating";
   search?: string;
 }
@@ -97,8 +95,6 @@ export async function getAllCourses(params: GetCoursesParams): Promise<{
   const {
     page = 1,
     limit = 12,
-    category,
-    level,
     sort = "popular",
     search,
   } = params;
@@ -106,12 +102,15 @@ export async function getAllCourses(params: GetCoursesParams): Promise<{
   // Build filter query — only show published courses to public
   const filter: Record<string, unknown> = { isPublished: true };
 
-  if (category) filter.category = category;
-  if (level) filter.level = level;
-
-  // Text search uses the compound text index on title/description/tags
+  // Use $or with regex for robust partial search including instructorName
   if (search) {
-    filter.$text = { $search: search };
+    const regex = new RegExp(search, "i");
+    filter.$or = [
+      { title: regex },
+      { description: regex },
+      { tags: regex },
+      { instructorName: regex },
+    ];
   }
 
   // Map sort option to MongoDB sort object
@@ -204,12 +203,19 @@ export async function searchCourses(query: string): Promise<ICourse[]> {
     throw createApiError(HTTP_STATUS.BAD_REQUEST, "Search query must be at least 2 characters");
   }
 
+  const regex = new RegExp(query, "i");
   const courses = await Course.find({
     isPublished: true,
-    $text: { $search: query },
+    $or: [
+      { title: regex },
+      { description: regex },
+      { tags: regex },
+      { instructorName: regex },
+    ],
   })
     .populate("instructor", "name avatar")
-    .sort({ score: { $meta: "textScore" } }) // Sort by relevance
+    // Note: Can't sort by textScore without $text. We will sort by popularity instead.
+    .sort({ studentsCount: -1 })
     .limit(20)
     .lean();
 
@@ -335,7 +341,11 @@ export async function getAdminCourses(params: {
   const filter: Record<string, unknown> = {};
 
   if (search) {
-    filter.$text = { $search: search };
+    const regex = new RegExp(search, "i");
+    filter.$or = [
+      { title: regex },
+      { instructorName: regex },
+    ];
   }
 
   const skip = (page - 1) * limit;

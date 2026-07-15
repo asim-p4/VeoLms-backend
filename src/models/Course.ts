@@ -17,20 +17,6 @@
  */
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-/** Available course categories */
-export const COURSE_CATEGORIES = [
-  "Frontend",
-  "Backend",
-  "DevOps",
-  "Data Science",
-  "Mobile",
-  "Design",
-  "Cybersecurity",
-  "Database",
-] as const;
-
-export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
-
 /** Course difficulty levels */
 export const COURSE_LEVELS = [
   "Beginner",
@@ -49,13 +35,15 @@ export interface ICourse extends Document {
   longDescription?: string;
   thumbnail: string;
   trailerUrl?: string;
-  /** Price in paise (INR) — e.g., 49900 = ₹499 */
+  /** Price in cents (USD) — e.g., 4990 = $49.90 */
   price: number;
   /** Discounted price in paise if on sale */
   discountPrice?: number;
-  instructor: Types.ObjectId;
-  category: CourseCategory;
-  level: CourseLevel;
+  instructor: Types.ObjectId; // Original reference
+  instructorName?: string;
+  instructorBio?: string;
+  instructorAvatar?: string;
+  lessons: Types.ObjectId[];
   tags: string[];
   isPublished: boolean;
   /** Denormalized: updated when students enroll */
@@ -127,18 +115,23 @@ const courseSchema = new Schema<ICourse>(
       ref: "User",
       required: true,
     },
-    category: {
+    instructorName: {
       type: String,
-      enum: COURSE_CATEGORIES,
-      required: [true, "Course category is required"],
-      index: true,
+      trim: true,
     },
-    level: {
+    instructorBio: {
       type: String,
-      enum: COURSE_LEVELS,
-      required: [true, "Course level is required"],
-      index: true,
+      trim: true,
     },
+    instructorAvatar: {
+      type: String,
+    },
+    lessons: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Lesson",
+      },
+    ],
     tags: {
       type: [String],
       default: [],

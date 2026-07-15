@@ -24,6 +24,8 @@ export interface IUser extends Document {
   role: UserRole;
   avatar?: string;
   isVerified: boolean;
+  verificationCode?: string;
+  verificationCodeExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   /** Timing-safe password comparison using bcrypt */
@@ -31,7 +33,7 @@ export interface IUser extends Document {
 }
 
 /** Shape of user object after toJSON() transform (password removed) */
-type SerializedUser = Omit<IUser, "password" | "__v"> & {
+export type SerializedUser = Omit<IUser, "password" | "__v"> & {
   password?: string;
   __v?: number;
 };
@@ -71,6 +73,16 @@ const userSchema = new Schema<IUser>(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    verificationCode: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    verificationCodeExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
     },
   },
   {
@@ -113,6 +125,8 @@ userSchema.methods.comparePassword = async function (
 userSchema.set("toJSON", {
   transform: (doc, ret: SerializedUser) => {
     delete ret.password;
+    delete ret.verificationCode;
+    delete ret.verificationCodeExpiresAt;
     delete ret.__v;
     return ret;
   },

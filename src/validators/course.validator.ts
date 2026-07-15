@@ -4,7 +4,6 @@
  * Validated by the validate middleware before controllers run.
  */
 import { z } from "zod";
-import { COURSE_CATEGORIES, COURSE_LEVELS } from "../models/Course";
 
 // ─── COURSE VALIDATORS ────────────────────────────────────────────────────────
 
@@ -25,16 +24,13 @@ export const createCourseSchema = z.object({
       .max(500, "Description cannot exceed 500 characters")
       .trim(),
     longDescription: z.string().optional(),
-    thumbnail: z.string().url("Thumbnail must be a valid URL").optional(),
-    trailerUrl: z.string().url("Trailer URL must be valid").optional(),
+    thumbnail: z.string().optional(),
+    trailerUrl: z.string().optional(),
+    instructorName: z.string().min(2).optional(),
+    instructorBio: z.string().min(10).optional(),
+    instructorAvatar: z.string().optional(),
     price: z.number().min(0, "Price cannot be negative"),
     discountPrice: z.number().min(0).optional(),
-    category: z.enum(COURSE_CATEGORIES, {
-      errorMap: () => ({ message: "Invalid course category" }),
-    }),
-    level: z.enum(COURSE_LEVELS, {
-      errorMap: () => ({ message: "Invalid course level" }),
-    }),
     tags: z.array(z.string()).default([]),
   }),
 });
@@ -52,12 +48,13 @@ export const updateCourseSchema = z.object({
       title: z.string().min(5).max(100).trim().optional(),
       description: z.string().min(20).max(500).trim().optional(),
       longDescription: z.string().optional(),
-      thumbnail: z.string().url().optional(),
-      trailerUrl: z.string().url().optional(),
+      thumbnail: z.string().optional(),
+      trailerUrl: z.string().optional(),
+      instructorName: z.string().min(2).optional(),
+      instructorBio: z.string().min(10).optional(),
+      instructorAvatar: z.string().optional(),
       price: z.number().min(0).optional(),
       discountPrice: z.number().min(0).optional().nullable(),
-      category: z.enum(COURSE_CATEGORIES).optional(),
-      level: z.enum(COURSE_LEVELS).optional(),
       tags: z.array(z.string()).optional(),
       isPublished: z.boolean().optional(),
     })
@@ -114,8 +111,8 @@ export const createLessonSchema = z.object({
       .trim(),
     description: z.string().max(1000).optional(),
     videoUrl: z.string().optional(),
+    isPreview: z.boolean().optional(),
     duration: z.number().min(0).optional(),
-    isPreview: z.boolean().default(false),
   }),
 });
 
@@ -131,8 +128,8 @@ export const updateLessonSchema = z.object({
       title: z.string().min(2).max(200).trim().optional(),
       description: z.string().max(1000).optional(),
       videoUrl: z.string().optional(),
-      duration: z.number().min(0).optional(),
       isPreview: z.boolean().optional(),
+      duration: z.number().min(0).optional(),
       order: z.number().min(1).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {

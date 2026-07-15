@@ -42,14 +42,12 @@ import {
  * Returns paginated list of published courses with optional filters.
  */
 export const getCourses = asyncHandler(async (req: Request, res: Response) => {
-  const { page, limit, category, level, sort, search } = req.query;
+  const { page, limit, sort, search } = req.query;
 
   const result = await getAllCourses({
-    page: page ? parseInt(page as string) : 1,
-    limit: limit ? parseInt(limit as string) : 12,
-    category: category as string,
-    level: level as string,
-    sort: sort as "newest" | "popular" | "price-asc" | "price-desc" | "rating",
+    page: page ? parseInt(page as string, 10) : 1,
+    limit: limit ? parseInt(limit as string, 10) : 12,
+    sort: sort as "newest" | "popular" | "price-asc" | "price-desc" | "rating" | undefined,
     search: search as string,
   });
 

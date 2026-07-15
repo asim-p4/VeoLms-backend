@@ -45,7 +45,10 @@ import {
 import {
   getStats,
   getStudents,
+  getStudentDetails,
   getAllEnrollmentsAdmin,
+  postGenerateUploadUrl,
+  patchEnrollmentStatus,
 } from "../controllers/adminController";
 import {
   createCourseSchema,
@@ -61,10 +64,14 @@ const router = Router();
 // Apply auth + adminOnly to ALL admin routes
 router.use(auth, adminOnly);
 
-// ─── STATS ────────────────────────────────────────────────────────────────────
 router.get("/stats", getStats);
 router.get("/students", getStudents);
+router.get("/students/:id", getStudentDetails);
 router.get("/enrollments", getAllEnrollmentsAdmin);
+router.patch("/enrollments/:id/status", patchEnrollmentStatus);
+
+// ─── UPLOADS ──────────────────────────────────────────────────────────────────
+router.post("/upload/presign", postGenerateUploadUrl);
 
 // ─── COURSE MANAGEMENT ───────────────────────────────────────────────────────
 router.get("/courses", getAdminCourseList);

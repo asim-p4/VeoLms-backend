@@ -5,16 +5,17 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import { HTTP_STATUS } from "../constants/httpStatus";
-import { createPaymentIntent, handleWebhook } from "../services/paymentService";
+import { createCheckoutSession, handleWebhook } from "../services/paymentService";
 
-export const postCreateIntent = asyncHandler(async (req: Request, res: Response) => {
+export const postCreateCheckoutSession = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const { courseId } = req.body;
+  const origin = req.headers.origin || "http://localhost:5173";
 
-  const result = await createPaymentIntent(userId, courseId);
+  const result = await createCheckoutSession(userId, courseId, origin);
 
   res.status(HTTP_STATUS.OK).json(
-    ApiResponse(HTTP_STATUS.OK, "Payment intent created", result)
+    ApiResponse(HTTP_STATUS.OK, "Checkout session created", result)
   );
 });
 

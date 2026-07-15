@@ -24,6 +24,8 @@ export interface IEnrollment extends Document {
   /** ID of the last lesson the student accessed for resume functionality */
   lastAccessedLesson?: Types.ObjectId;
   status: EnrollmentStatus;
+  /** Admin override to revoke or enable course access */
+  isActive: boolean;
   /** Reference to payment record — null for free courses */
   payment?: Types.ObjectId;
   createdAt: Date;
@@ -63,6 +65,10 @@ const enrollmentSchema = new Schema<IEnrollment>(
       type: String,
       enum: ENROLLMENT_STATUS,
       default: "active",
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     payment: {
       type: Schema.Types.ObjectId,
