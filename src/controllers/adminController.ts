@@ -11,7 +11,7 @@ import { Course } from "../models/Course";
 import { Enrollment } from "../models/Entrollment";
 import { Payment } from "../models/Payment";
 import { getAllEnrollments } from "../services/enrollmentService";
-import { generateUploadPresignedUrl, UploadType } from "../services/storageService";
+import { generateUploadPresignedUrl, UploadType, getPublicUrl, isR2Key } from "../services/storageService";
 
 /**
  * POST /api/admin/upload/presign
@@ -122,9 +122,14 @@ export const getStudents = asyncHandler(async (req: Request, res: Response) => {
     User.countDocuments({ role: "student" }),
   ]);
 
+  const formattedStudents = students.map(student => ({
+    ...student,
+    avatar: (student.avatar && isR2Key(student.avatar)) ? getPublicUrl(student.avatar) : student.avatar
+  }));
+
   res.status(HTTP_STATUS.OK).json(
     ApiResponse(HTTP_STATUS.OK, "Students fetched successfully", {
-      students,
+      students: formattedStudents,
       total,
       page,
       totalPages: Math.ceil(total / limit),
