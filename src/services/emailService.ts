@@ -13,6 +13,9 @@ export async function sendVerificationEmail(email: string, code: string) {
       user: env.SMTP_USER,
       pass: env.SMTP_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 
   try {
