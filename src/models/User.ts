@@ -133,6 +133,7 @@ userSchema.methods.comparePassword = async function (
  * Ensures password and internal Mongoose fields never leak to the client.
  */
 userSchema.set("toJSON", {
+  getters: true,
   transform: (doc, ret: SerializedUser) => {
     delete ret.password;
     delete ret.verificationCode;

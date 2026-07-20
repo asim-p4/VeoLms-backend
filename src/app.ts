@@ -26,6 +26,10 @@ import { env } from "./config/env";
 
 const app = express();
 
+// Trust proxy is required because the app is hosted on Render (a reverse proxy).
+// Without this, express-rate-limit will block Render's internal IP and ban everyone.
+app.set("trust proxy", 1);
+
 // 1. Security headers — removes X-Powered-By, sets CSP, HSTS, etc.
 app.use(
   helmet({

@@ -54,7 +54,7 @@ const lessonSchema = new Schema<ILesson>(
     },
     videoUrl: {
       type: String,
-      default: "",
+      required: [true, "Video file is required"],
     },
     isPreview: {
       type: Boolean,
