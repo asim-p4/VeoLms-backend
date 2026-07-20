@@ -16,6 +16,13 @@
  * - Text index on title/description for search
  */
 import mongoose, { Document, Schema, Types } from "mongoose";
+import { getPublicUrl, isR2Key } from "../services/storageService";
+
+function getR2Url(val: string): string {
+  if (!val) return val;
+  if (isR2Key(val)) return getPublicUrl(val);
+  return val;
+}
 
 /** Course difficulty levels */
 export const COURSE_LEVELS = [
@@ -88,10 +95,12 @@ const courseSchema = new Schema<ICourse>(
     thumbnail: {
       type: String,
       default: "",
+      get: getR2Url,
     },
     trailerUrl: {
       type: String,
       default: null,
+      get: getR2Url,
     },
     price: {
       type: Number,
@@ -125,6 +134,7 @@ const courseSchema = new Schema<ICourse>(
     },
     instructorAvatar: {
       type: String,
+      get: getR2Url,
     },
     lessons: [
       {
@@ -165,8 +175,8 @@ const courseSchema = new Schema<ICourse>(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toJSON: { virtuals: true, getters: true },
+    toObject: { virtuals: true, getters: true },
   },
 );
 

@@ -15,6 +15,13 @@
 import mongoose, { Document, Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import { UserRole } from "../constants/roles";
+import { getPublicUrl, isR2Key } from "../services/storageService";
+
+function getR2Url(val: string): string {
+  if (!val) return val;
+  if (isR2Key(val)) return getPublicUrl(val);
+  return val;
+}
 
 /** Mongoose document interface for the User model */
 export interface IUser extends Document {
@@ -69,6 +76,7 @@ const userSchema = new Schema<IUser>(
     avatar: {
       type: String,
       default: null,
+      get: getR2Url,
     },
     isVerified: {
       type: Boolean,
@@ -87,6 +95,8 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically
+    toJSON: { getters: true },
+    toObject: { getters: true },
   },
 );
 

@@ -80,6 +80,13 @@ export type UploadType = "video" | "picture";
  *   key       – R2 object key (use this as the stored value in DB)
  *   publicUrl – public CDN URL of the object (only valid if bucket is public)
  */
+export function getPublicUrl(key: string): string {
+  const bucket = getBucket();
+  return env.R2_PUBLIC_URL
+    ? `${env.R2_PUBLIC_URL}/${key}`
+    : `https://${bucket}.${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
+}
+
 export async function generateUploadPresignedUrl(
   type: UploadType,
   filename: string,
@@ -103,11 +110,7 @@ export async function generateUploadPresignedUrl(
   });
 
   const uploadUrl = await getSignedUrl(client, command, { expiresIn });
-
-  // Public URL (works if bucket has public access policy)
-  const publicUrl = env.R2_PUBLIC_URL
-    ? `${env.R2_PUBLIC_URL}/${key}`
-    : `https://${bucket}.${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
+  const publicUrl = getPublicUrl(key);
 
   return { uploadUrl, key, publicUrl };
 }
