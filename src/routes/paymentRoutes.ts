@@ -4,7 +4,7 @@
 import { Router } from "express";
 import { auth } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validateMiddleware";
-import { postCreateCheckoutSession, postWebhook } from "../controllers/paymentController";
+import { postCreateCheckoutSession, postWebhook, getVerifySession } from "../controllers/paymentController";
 import { z } from "zod";
 
 const router = Router();
@@ -17,6 +17,7 @@ const createIntentSchema = z.object({
 
 // Protect create-checkout-session route
 router.post("/create-checkout-session", auth, validate(createIntentSchema), postCreateCheckoutSession);
+router.get("/verify-session", auth, getVerifySession);
 
 // Webhook must remain public (Stripe sends requests here)
 // Security is handled by signature verification in the service

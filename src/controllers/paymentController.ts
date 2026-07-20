@@ -5,7 +5,18 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import { HTTP_STATUS } from "../constants/httpStatus";
-import { createCheckoutSession, handleWebhook } from "../services/paymentService";
+import { createCheckoutSession, handleWebhook, verifySession } from "../services/paymentService";
+
+export const getVerifySession = asyncHandler(async (req: Request, res: Response) => {
+  const sessionId = req.query.session_id as string;
+  if (!sessionId) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(ApiResponse(HTTP_STATUS.BAD_REQUEST, "Missing session_id"));
+    return;
+  }
+  
+  const result = await verifySession(sessionId);
+  res.status(HTTP_STATUS.OK).json(ApiResponse(HTTP_STATUS.OK, "Session verified", result));
+});
 
 export const postCreateCheckoutSession = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.userId;

@@ -48,7 +48,7 @@ export async function createCheckoutSession(userId: string, courseId: string, or
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "payment",
-    success_url: `${origin}/dashboard?success=true`,
+    success_url: `${origin}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/courses/${course.slug || course._id}?canceled=true`,
     customer_email: undefined, // Ideally fetch user's email if available, or omit
     client_reference_id: userId,
@@ -122,5 +122,42 @@ export async function handleWebhook(payload: Buffer, signature: string) {
   }
 
   return { received: true };
+}
+
+/**
+ * Synchronously verifies a Stripe Checkout session and enrolls the user if successful.
+ * Used as a fallback to webhooks to ensure immediate enrollment on the frontend.
+ */
+export async function verifySession(sessionId: string) {
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (!session) {
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Session not found");
+  }
+
+  const paymentId = session.metadata?.paymentId;
+  if (!paymentId) {
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "Invalid session metadata");
+  }
+
+  const payment = await Payment.findById(paymentId);
+  if (!payment) {
+    throw createApiError(HTTP_STATUS.NOT_FOUND, "Payment record not found");
+  }
+
+  if (payment.status === "succeeded") {
+    return { alreadyVerified: true };
+  }
+
+  if (session.payment_status === "paid") {
+    payment.status = "succeeded";
+    // If it was still pending, the intent id might be different, ensure we have session id
+    payment.stripePaymentIntentId = session.id;
+    await payment.save();
+
+    await enroll(payment.user.toString(), payment.course.toString(), payment._id.toString());
+    return { verified: true, enrolled: true };
+  }
+
+  return { verified: false, status: session.payment_status };
 }
 
