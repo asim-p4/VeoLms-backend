@@ -130,8 +130,7 @@ export async function getAllCourses(params: GetCoursesParams): Promise<{
       .populate("instructor", "name avatar") // Only fetch name and avatar
       .sort(sortQuery)
       .skip(skip)
-      .limit(limit)
-      .lean(), // Return plain JS objects for performance
+      .limit(limit), // .lean() removed to allow Mongoose getters
     Course.countDocuments(filter),
   ]);
 
@@ -186,8 +185,7 @@ export async function getFeaturedCourses(limit: number = 8): Promise<ICourse[]> 
   const courses = await Course.find({ isPublished: true })
     .populate("instructor", "name avatar")
     .sort({ rating: -1, studentsCount: -1 }) // Best rated, then most popular
-    .limit(limit)
-    .lean();
+    .limit(limit); // .lean() removed to allow Mongoose getters
 
   return courses as unknown as ICourse[];
 }
@@ -216,8 +214,7 @@ export async function searchCourses(query: string): Promise<ICourse[]> {
     .populate("instructor", "name avatar")
     // Note: Can't sort by textScore without $text. We will sort by popularity instead.
     .sort({ studentsCount: -1 })
-    .limit(20)
-    .lean();
+    .limit(20); // .lean() removed to allow Mongoose getters
 
   return courses as unknown as ICourse[];
 }
@@ -355,8 +352,7 @@ export async function getAdminCourses(params: {
       .populate("instructor", "name avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .lean(),
+      .limit(limit), // .lean() removed to allow Mongoose getters
     Course.countDocuments(filter),
   ]);
 
