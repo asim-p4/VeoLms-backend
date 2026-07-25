@@ -91,7 +91,7 @@ export async function generateUploadPresignedUrl(
   type: UploadType,
   filename: string,
   contentType: string,
-): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
+): Promise<{ uploadUrl: string; key: string }> {
   const client = getR2Client();
   const bucket = getBucket();
 
@@ -110,9 +110,8 @@ export async function generateUploadPresignedUrl(
   });
 
   const uploadUrl = await getSignedUrl(client, command, { expiresIn });
-  const publicUrl = getPublicUrl(key);
 
-  return { uploadUrl, key, publicUrl };
+  return { uploadUrl, key };
 }
 
 /**

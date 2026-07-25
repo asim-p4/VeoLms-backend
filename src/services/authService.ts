@@ -67,7 +67,7 @@ export async function userSignup(
     try {
       await sendVerificationEmail(email, code);
     } catch (error) {
-      throw createApiError(500, "Failed to send verification email. Please check your SMTP configuration. If using Gmail, you MUST use an App Password, not your normal password.");
+      throw createApiError(500, "Failed to send verification email. Please check your SMTP configuration.");
     }
     return { success: true, message: "Verification code sent" };
   }

@@ -27,14 +27,14 @@ export const postGenerateUploadUrl = asyncHandler(async (req: Request, res: Resp
     return;
   }
 
-  const { uploadUrl, key, publicUrl } = await generateUploadPresignedUrl(
+  const { uploadUrl, key } = await generateUploadPresignedUrl(
     type as UploadType,
     filename,
     contentType
   );
 
   res.status(HTTP_STATUS.OK).json(
-    ApiResponse(HTTP_STATUS.OK, "Presigned URL generated", { uploadUrl, key, publicUrl })
+    ApiResponse(HTTP_STATUS.OK, "Presigned URL generated", { uploadUrl, key })
   );
 });
 

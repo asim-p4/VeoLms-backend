@@ -46,28 +46,37 @@ export async function enroll(
     throw createApiError(HTTP_STATUS.BAD_REQUEST, "Payment is required for this course");
   }
 
-  // Check if already enrolled — return existing record (idempotent)
-  const existingEnrollment = await Enrollment.findOne({
-    user: new Types.ObjectId(userId),
-    course: new Types.ObjectId(courseId),
-  });
+  try {
+    // Attempt to create new enrollment record
+    const enrollment = await Enrollment.create({
+      user: new Types.ObjectId(userId),
+      course: new Types.ObjectId(courseId),
+      payment: paymentId ? new Types.ObjectId(paymentId) : null,
+      enrolledAt: new Date(),
+    });
 
-  if (existingEnrollment) {
-    return existingEnrollment;
+    // If successful, atomically increment the course student count
+    await Course.findByIdAndUpdate(courseId, { $inc: { studentsCount: 1 } });
+
+    return enrollment;
+  } catch (err: any) {
+    // 11000 is MongoDB's duplicate key error code
+    if (err.code === 11000) {
+      // The other concurrent request (Webhook/Frontend) won the race! 
+      // Safely fetch and return the existing enrollment they just created.
+      const existing = await Enrollment.findOne({
+        user: new Types.ObjectId(userId),
+        course: new Types.ObjectId(courseId),
+      });
+      
+      if (!existing) {
+        throw createApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Failed to resolve enrollment race condition");
+      }
+      
+      return existing;
+    }
+    throw err;
   }
-
-  // Create new enrollment record
-  const enrollment = await Enrollment.create({
-    user: new Types.ObjectId(userId),
-    course: new Types.ObjectId(courseId),
-    payment: paymentId ? new Types.ObjectId(paymentId) : null,
-    enrolledAt: new Date(),
-  });
-
-  // Atomically increment student count (safe concurrent operation)
-  await Course.findByIdAndUpdate(courseId, { $inc: { studentsCount: 1 } });
-
-  return enrollment;
 }
 
 /**
