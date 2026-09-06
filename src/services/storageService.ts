@@ -66,7 +66,7 @@ function getBucket(): string {
 
 // ─── Exported helpers ─────────────────────────────────────────────────────────
 
-export type UploadType = "video" | "picture";
+export type UploadType = "video" | "picture" | "trailer";
 
 /**
  * Generates a presigned PUT URL that allows the client to upload a file
@@ -98,7 +98,7 @@ export async function generateUploadPresignedUrl(
   // Create a unique key based on type, timestamp, and original filename
   const ext = filename.split(".").pop() || "";
   const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  const prefix = type === "video" ? "videos" : "pictures";
+  const prefix = type === "video" ? "videos" : type === "trailer" ? "trailers" : "pictures";
   const key = `${prefix}/${uniqueId}.${ext}`;
 
   const expiresIn = parseInt(env.R2_PRESIGN_EXPIRY_SECONDS, 10);
@@ -112,6 +112,43 @@ export async function generateUploadPresignedUrl(
   const uploadUrl = await getSignedUrl(client, command, { expiresIn });
 
   return { uploadUrl, key };
+}
+
+/**
+ * Generates an array of presigned PUT URLs for uploading HLS chunks and playlists.
+ * Groups all files under a single unique folder prefix.
+ *
+ * @param files - Array of files with their intended relative paths and MIME types
+ * @returns Array of presigned URLs and their corresponding R2 keys
+ */
+export async function generateBatchUploadPresignedUrls(
+  files: { filename: string; contentType: string }[],
+  folderId?: string
+): Promise<{ filename: string; uploadUrl: string; key: string }[]> {
+  const client = getR2Client();
+  const bucket = getBucket();
+  const expiresIn = parseInt(env.R2_PRESIGN_EXPIRY_SECONDS, 10);
+  
+  // Group all chunks for this lesson under one unique folder
+  const uniqueFolderId = folderId || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const basePrefix = `videos/${uniqueFolderId}`;
+
+  // Generate all presigned URLs in parallel
+  const presignedUrls = await Promise.all(
+    files.map(async (file) => {
+      // filename here might be "master.m3u8" or "360p/chunk-001.ts"
+      const key = `${basePrefix}/${file.filename}`;
+      const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: file.contentType,
+      });
+      const uploadUrl = await getSignedUrl(client, command, { expiresIn });
+      return { filename: file.filename, uploadUrl, key };
+    })
+  );
+
+  return presignedUrls;
 }
 
 /**
@@ -167,6 +204,7 @@ export function isR2Key(value: string): boolean {
     !value.startsWith("https://") &&
     (value.startsWith("videos/") ||
       value.startsWith("pictures/") ||
+      value.startsWith("trailers/") ||
       value.startsWith("thumbnails/") || // Keep for backward compatibility
       value.startsWith("avatars/"))
   );

@@ -39,6 +39,28 @@ export const postGenerateUploadUrl = asyncHandler(async (req: Request, res: Resp
 });
 
 /**
+ * POST /api/admin/upload/presign/batch
+ * Generates an array of presigned PUT URLs for direct client-to-R2 batch upload (used for HLS chunks).
+ */
+export const postGenerateBatchUploadUrl = asyncHandler(async (req: Request, res: Response) => {
+  const { files, folderId } = req.body; // Array of { filename, contentType }
+
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(
+      ApiResponse(HTTP_STATUS.BAD_REQUEST, "Missing required array field: files")
+    );
+    return;
+  }
+
+  const { generateBatchUploadPresignedUrls } = await import("../services/storageService");
+  const presignedUrls = await generateBatchUploadPresignedUrls(files, folderId);
+
+  res.status(HTTP_STATUS.OK).json(
+    ApiResponse(HTTP_STATUS.OK, "Batch presigned URLs generated", { presignedUrls })
+  );
+});
+
+/**
  * GET /api/admin/stats
  * Aggregates high-level platform statistics for the admin dashboard.
  */

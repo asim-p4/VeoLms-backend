@@ -48,6 +48,7 @@ import {
   getStudentDetails,
   getAllEnrollmentsAdmin,
   postGenerateUploadUrl,
+  postGenerateBatchUploadUrl,
   patchEnrollmentStatus,
 } from "../controllers/adminController";
 import {
@@ -72,6 +73,7 @@ router.patch("/enrollments/:id/status", patchEnrollmentStatus);
 
 // ─── UPLOADS ──────────────────────────────────────────────────────────────────
 router.post("/upload/presign", postGenerateUploadUrl);
+router.post("/upload/presign/batch", postGenerateBatchUploadUrl);
 
 // ─── COURSE MANAGEMENT ───────────────────────────────────────────────────────
 router.get("/courses", getAdminCourseList);

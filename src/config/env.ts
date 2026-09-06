@@ -7,6 +7,7 @@ const envSchema = z.object({
   MONGODB_URI: z.string().url(),
   ACCESS_TOKEN_SECRET: z.string().min(32),
   REFRESH_TOKEN_SECRET: z.string().min(32),
+  HLS_AUTH_SECRET: z.string().min(32).optional(),
   ACCESS_TOKEN_EXPIRY: z.string().default("15m"),
   REFRESH_TOKEN_EXPIRY: z.string().default("7d"),
   CORS_ORIGIN: z.string().url(),
