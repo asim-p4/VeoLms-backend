@@ -3,6 +3,7 @@
  * Handles HTTP requests for admin dashboard statistics and overviews.
  */
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import { HTTP_STATUS } from "../constants/httpStatus";
@@ -222,5 +223,61 @@ export const getAllEnrollmentsAdmin = asyncHandler(async (req: Request, res: Res
 
   res.status(HTTP_STATUS.OK).json(
     ApiResponse(HTTP_STATUS.OK, "Enrollments fetched successfully", result)
+  );
+});
+
+/**
+ * POST /api/admin/enrollments
+ * Manually enrolls a student in a course (admin override).
+ */
+export const postAdminEnrollStudent = asyncHandler(async (req: Request, res: Response) => {
+  const { userId, courseId } = req.body;
+
+  if (!userId || !courseId) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json(
+      ApiResponse(HTTP_STATUS.BAD_REQUEST, "userId and courseId are required")
+    );
+    return;
+  }
+
+  const course = await Course.findById(courseId);
+  if (!course) {
+    res.status(HTTP_STATUS.NOT_FOUND).json(
+      ApiResponse(HTTP_STATUS.NOT_FOUND, "Course not found")
+    );
+    return;
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(HTTP_STATUS.NOT_FOUND).json(
+      ApiResponse(HTTP_STATUS.NOT_FOUND, "Student not found")
+    );
+    return;
+  }
+
+  // Create or activate existing enrollment
+  let enrollment = await Enrollment.findOne({
+    user: new Types.ObjectId(userId),
+    course: new Types.ObjectId(courseId),
+  });
+
+  if (!enrollment) {
+    enrollment = await Enrollment.create({
+      user: new Types.ObjectId(userId),
+      course: new Types.ObjectId(courseId),
+      enrolledAt: new Date(),
+      status: "active",
+      isActive: true,
+    });
+    await Course.findByIdAndUpdate(courseId, { $inc: { studentsCount: 1 } });
+  } else if (!enrollment.isActive) {
+    enrollment.isActive = true;
+    enrollment.status = "active";
+    await enrollment.save();
+  }
+
+  res.status(HTTP_STATUS.CREATED).json(
+    ApiResponse(HTTP_STATUS.CREATED, "Student enrolled successfully", { enrollment })
   );
 });

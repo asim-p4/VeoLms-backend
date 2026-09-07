@@ -20,6 +20,12 @@ import { getPublicUrl, isR2Key } from "../services/storageService";
 
 function getR2Url(val: string): string {
   if (!val) return val;
+  if (val.includes("/trailers/") || val.startsWith("trailers/")) {
+    const filename = val.includes("/trailers/")
+      ? val.split("/trailers/").pop()?.split("?")[0]
+      : val.replace("trailers/", "").split("?")[0];
+    return `/api/courses/trailer/${filename}`;
+  }
   if (isR2Key(val)) return getPublicUrl(val);
   return val;
 }

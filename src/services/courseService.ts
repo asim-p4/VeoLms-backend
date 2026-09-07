@@ -27,9 +27,13 @@ export interface CreateCourseInput {
   trailerUrl?: string;
   price: number;
   discountPrice?: number;
-  category: string;
-  level: string;
+  category?: string;
+  level?: string;
+  instructorName?: string;
+  instructorBio?: string;
+  instructorAvatar?: string;
   tags?: string[];
+  isPublished?: boolean;
 }
 
 /** Input type for course updates (all fields optional) */
@@ -143,15 +147,28 @@ export async function getAllCourses(params: GetCoursesParams): Promise<{
 }
 
 /**
- * Retrieves a single course by its URL slug, including full curriculum.
+ * Retrieves a single course by its URL slug or MongoDB ObjectId, including full curriculum.
  * Sections and lessons are populated and sorted by order.
  *
- * @param slug - URL-safe course identifier
+ * @param slugOrId - URL-safe course identifier or 24-char ObjectId
+ * @param allowDraft - When true, returns the course even if unpublished (e.g. preview)
  * @returns Full course document with populated sections and lessons
  * @throws ApiError 404 if course not found or not published
  */
-export async function getCourseBySlug(slug: string): Promise<ICourse> {
-  const course = await Course.findOne({ slug, isPublished: true })
+export async function getCourseBySlug(
+  slugOrId: string,
+  allowDraft: boolean = false,
+): Promise<ICourse> {
+  const isObjectId = Types.ObjectId.isValid(slugOrId);
+  const identifierFilter = isObjectId
+    ? { $or: [{ slug: slugOrId }, { _id: new Types.ObjectId(slugOrId) }] }
+    : { slug: slugOrId };
+
+  const filter = allowDraft
+    ? identifierFilter
+    : { ...identifierFilter, isPublished: true };
+
+  let course = await Course.findOne(filter)
     .populate({
       path: "instructor",
       select: "name avatar",
@@ -166,6 +183,17 @@ export async function getCourseBySlug(slug: string): Promise<ICourse> {
         select: "-videoUrl",
       },
     });
+
+  // Fallback: If not found published, check if course exists as draft so we can provide a clear error
+  if (!course && !allowDraft) {
+    const draftExists = await Course.findOne(identifierFilter);
+    if (draftExists) {
+      throw createApiError(
+        HTTP_STATUS.NOT_FOUND,
+        "This course is currently in draft mode and not yet published.",
+      );
+    }
+  }
 
   if (!course) {
     throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
@@ -238,7 +266,7 @@ export async function createCourse(
     ...input,
     slug,
     instructor: new Types.ObjectId(instructorId),
-    isPublished: false, // New courses are drafts by default
+    isPublished: input.isPublished ?? false, // Defaults to false if not specified
   });
 
   return course;

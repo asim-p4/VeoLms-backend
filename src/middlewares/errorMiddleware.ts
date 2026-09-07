@@ -66,7 +66,9 @@ export const errorHandler = (
 
   // Log all errors in development for debugging; in production log only 5xx
   if (statusCode >= 500) {
-    console.error(`[Error ${statusCode}]`, err);
+    console.error(`[Server Error ${statusCode}]`, err);
+  } else if (env.NODE_ENV !== "production" && statusCode >= 400) {
+    console.warn(`[Client Error ${statusCode}] ${req.method} ${req.originalUrl} — ${message}`);
   }
 
   res.status(statusCode).json({

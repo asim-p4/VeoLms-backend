@@ -63,8 +63,8 @@ app.use(express.json({ limit: "10kb" }));
 // 5. Cookie parser — required for reading HttpOnly refresh token cookie
 app.use(cookieParser());
 
-// 6. HTTP request logging (always use combined format in production)
-app.use(morgan("combined"));
+// 6. HTTP request logging (clean, color-coded dev format in dev, combined in production)
+app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 
 // 7. Global rate limiting (100 requests per 15 minutes per IP)
 app.use(globalRateLimiter);

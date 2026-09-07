@@ -1,8 +1,7 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 const envSchema = z.object({
-  // NODE_ENV removed since we are strictly hardcoding production logic
-  // (Render auto-sets this, but we no longer need to parse/validate it)
+  NODE_ENV: z.string().default("development"),
   PORT: z.string().default("5000"),
   MONGODB_URI: z.string().url(),
   ACCESS_TOKEN_SECRET: z.string().min(32),
@@ -33,7 +32,7 @@ const envSchema = z.object({
 export const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("❌ Invalid environment variables:", parsed.error.format());
+  console.error("Invalid environment variables:", parsed.error.format());
   process.exit(1);
 }
 

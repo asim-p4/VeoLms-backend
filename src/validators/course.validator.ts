@@ -31,6 +31,9 @@ export const createCourseSchema = z.object({
     instructorAvatar: z.string().optional(),
     price: z.number().min(0, "Price cannot be negative"),
     discountPrice: z.number().min(0).optional(),
+    category: z.string().optional(),
+    level: z.string().optional(),
+    isPublished: z.boolean().optional(),
     tags: z.array(z.string()).default([]),
   }),
 });

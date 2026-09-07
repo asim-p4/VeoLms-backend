@@ -192,6 +192,19 @@ export async function deleteObject(key: string): Promise<void> {
   );
 }
 
+export async function getObjectStream(key: string, range?: string) {
+  const client = getR2Client();
+  const bucket = getBucket();
+
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Range: range,
+  });
+
+  return client.send(command);
+}
+
 /**
  * Returns true if a given string looks like an R2 object key (not a full URL).
  * Used to determine whether to call generateReadPresignedUrl or use the value directly.

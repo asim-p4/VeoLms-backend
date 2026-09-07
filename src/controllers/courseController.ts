@@ -34,6 +34,7 @@ import {
   updateLesson,
   deleteLesson,
 } from "../services/lessonService";
+import { getObjectStream } from "../services/storageService";
 
 // ─── PUBLIC HANDLERS ──────────────────────────────────────────────────────────
 
@@ -95,7 +96,8 @@ export const getCourseSearch = asyncHandler(
  */
 export const getCourseDetail = asyncHandler(
   async (req: Request, res: Response) => {
-    const course = await getCourseBySlug(req.params.slug);
+    const allowDraft = req.query.preview === "true" || req.user?.role === "admin";
+    const course = await getCourseBySlug(req.params.slug, allowDraft);
 
     res.status(HTTP_STATUS.OK).json(
       ApiResponse(HTTP_STATUS.OK, "Course fetched successfully", { course }),
@@ -273,5 +275,45 @@ export const deleteAdminLesson = asyncHandler(
     res.status(HTTP_STATUS.OK).json(
       ApiResponse(HTTP_STATUS.OK, "Lesson deleted successfully"),
     );
+  },
+);
+
+/**
+ * GET /api/courses/trailer/:filename
+ * Streams a course trailer video from R2 with full HTTP Range support.
+ */
+export const streamCourseTrailer = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { filename } = req.params;
+    const key = `trailers/${filename}`;
+    const range = req.headers.range;
+
+    try {
+      const response = await getObjectStream(key, range);
+
+      res.status(response.ContentRange ? 206 : 200);
+      res.set({
+        "Content-Range": response.ContentRange,
+        "Accept-Ranges": "bytes",
+        "Content-Length": response.ContentLength?.toString(),
+        "Content-Type": response.ContentType || "video/mp4",
+        "Cross-Origin-Resource-Policy": "cross-origin",
+        "Access-Control-Allow-Origin": "*",
+      });
+
+      if (response.Body) {
+        (response.Body as any).pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (err: any) {
+      if (err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        res.status(HTTP_STATUS.NOT_FOUND).json(
+          ApiResponse(HTTP_STATUS.NOT_FOUND, "Trailer not found"),
+        );
+        return;
+      }
+      throw err;
+    }
   },
 );

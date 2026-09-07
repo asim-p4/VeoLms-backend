@@ -7,7 +7,7 @@ import { Router } from "express";
 import { auth } from "../middlewares/authMiddleware";
 import { studentOnly } from "../middlewares/studentMiddleware";
 import { validate } from "../middlewares/validateMiddleware";
-import { postEnroll, getMyEnrollments } from "../controllers/enrollmentController";
+import { postEnroll, getMyEnrollments, deleteEnrollment } from "../controllers/enrollmentController";
 import { z } from "zod";
 
 const router = Router();
@@ -28,5 +28,8 @@ router.post("/", validate(enrollSchema), postEnroll);
 // Note: GET /api/me/courses logic is often mounted at /api/enrollments/me depending on routing structure.
 // We'll use /api/enrollments/me to keep it under this router block.
 router.get("/me", getMyEnrollments);
+
+// DELETE /api/enrollments/:courseId -> Unenrolls a student (supports testing and resets)
+router.delete("/:courseId", deleteEnrollment);
 
 export default router;

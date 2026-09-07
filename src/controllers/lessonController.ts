@@ -38,8 +38,8 @@ export const getLessonForStudent = asyncHandler(
     // Fetch the lesson (throws 404 if not found)
     const lesson = await getLessonById(id);
 
-    // Check access: preview lessons are always accessible
-    if (!lesson.isPreview) {
+    // Check access: preview lessons are always accessible, and admins have full preview access
+    if (req.user?.role !== "admin" && !lesson.isPreview) {
       const enrolled = await checkEnrollment(userId, lesson.course.toString());
       if (!enrolled) {
         throw createApiError(

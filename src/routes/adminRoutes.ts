@@ -50,6 +50,7 @@ import {
   postGenerateUploadUrl,
   postGenerateBatchUploadUrl,
   patchEnrollmentStatus,
+  postAdminEnrollStudent,
 } from "../controllers/adminController";
 import {
   createCourseSchema,
@@ -69,6 +70,7 @@ router.get("/stats", getStats);
 router.get("/students", getStudents);
 router.get("/students/:id", getStudentDetails);
 router.get("/enrollments", getAllEnrollmentsAdmin);
+router.post("/enrollments", postAdminEnrollStudent);
 router.patch("/enrollments/:id/status", patchEnrollmentStatus);
 
 // ─── UPLOADS ──────────────────────────────────────────────────────────────────

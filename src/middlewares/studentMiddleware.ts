@@ -22,7 +22,7 @@ export const studentOnly = (req: Request, res: Response, next: NextFunction) => 
     );
   }
 
-  if (req.user.role !== ROLES.STUDENT) {
+  if (req.user.role !== ROLES.STUDENT && req.user.role !== ROLES.ADMIN) {
     return next(
       createApiError(HTTP_STATUS.FORBIDDEN, "Student access required"),
     );
