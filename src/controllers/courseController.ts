@@ -317,3 +317,52 @@ export const streamCourseTrailer = asyncHandler(
     }
   },
 );
+
+/**
+ * GET /api/courses/picture/:filename
+ * Streams a course thumbnail, avatar, or picture directly from private R2 storage.
+ */
+export const streamCoursePicture = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { filename } = req.params;
+    const key = `pictures/${filename}`;
+
+    try {
+      const response = await getObjectStream(key);
+
+      const ext = filename.split(".").pop()?.toLowerCase();
+      let contentType = response.ContentType;
+      if (!contentType || contentType === "application/octet-stream") {
+        if (ext === "png") contentType = "image/png";
+        else if (ext === "jpg" || ext === "jpeg") contentType = "image/jpeg";
+        else if (ext === "webp") contentType = "image/webp";
+        else if (ext === "svg") contentType = "image/svg+xml";
+        else contentType = "image/png";
+      }
+
+      res.status(200);
+      res.set({
+        "Content-Length": response.ContentLength?.toString(),
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=86400, immutable",
+        "Cross-Origin-Resource-Policy": "cross-origin",
+        "Access-Control-Allow-Origin": "*",
+      });
+
+      if (response.Body) {
+        (response.Body as any).pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (err: any) {
+      if (err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        res.status(HTTP_STATUS.NOT_FOUND).json(
+          ApiResponse(HTTP_STATUS.NOT_FOUND, "Picture not found"),
+        );
+        return;
+      }
+      throw err;
+    }
+  },
+);
+

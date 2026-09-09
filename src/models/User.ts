@@ -19,6 +19,17 @@ import { getPublicUrl, isR2Key } from "../services/storageService";
 
 function getR2Url(val: string): string {
   if (!val) return val;
+  if (
+    val.includes("/pictures/") ||
+    val.startsWith("pictures/") ||
+    val.includes("/avatars/") ||
+    val.startsWith("avatars/")
+  ) {
+    const filename = (val.includes("/pictures/") || val.includes("/avatars/"))
+      ? val.split(/\/(pictures|avatars)\//).pop()?.split("?")[0]
+      : val.replace(/^(pictures|avatars)\//, "").split("?")[0];
+    return `/api/courses/picture/${filename}`;
+  }
   if (isR2Key(val)) return getPublicUrl(val);
   return val;
 }

@@ -15,6 +15,7 @@ import {
   getCourseSearch,
   getCourseDetail,
   streamCourseTrailer,
+  streamCoursePicture,
 } from "../controllers/courseController";
 
 const router = Router();
@@ -33,6 +34,10 @@ router.get("/search", getCourseSearch);
 // GET /api/courses/trailer/:filename — Stream course trailer with Range support
 // IMPORTANT: must be before /:slug route
 router.get("/trailer/:filename", streamCourseTrailer);
+
+// GET /api/courses/picture/:filename — Stream course thumbnail or picture from private R2
+// IMPORTANT: must be before /:slug route
+router.get("/picture/:filename", streamCoursePicture);
 
 // GET /api/courses/:slug — Full course detail with curriculum
 router.get("/:slug", getCourseDetail);
