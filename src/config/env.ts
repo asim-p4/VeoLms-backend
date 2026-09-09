@@ -1,9 +1,11 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.string().default("5000"),
-  MONGODB_URI: z.string().url(),
+  MONGODB_URI: z.string().refine((val) => val.startsWith("mongodb://") || val.startsWith("mongodb+srv://"), {
+    message: "Invalid MongoDB connection string. Must start with mongodb:// or mongodb+srv://",
+  }),
   ACCESS_TOKEN_SECRET: z.string().min(32),
   REFRESH_TOKEN_SECRET: z.string().min(32),
   HLS_AUTH_SECRET: z.string().min(32).optional(),

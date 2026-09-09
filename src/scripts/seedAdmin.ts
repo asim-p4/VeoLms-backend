@@ -13,6 +13,7 @@
 import mongoose from "mongoose";
 import { User } from "../models/User";
 import { env } from "../config/env";
+import { connectDB } from "../config/db";
 
 /**
  * Seeds the admin user into the database.
@@ -24,8 +25,7 @@ import { env } from "../config/env";
  */
 const seedAdmin = async (): Promise<void> => {
   try {
-    await mongoose.connect(env.MONGODB_URI);
-    console.log("✅ Connected to MongoDB");
+    await connectDB();
 
     // Check by role (not just email) — there should never be more than one admin
     const existingAdmin = await User.findOne({ role: "admin" });

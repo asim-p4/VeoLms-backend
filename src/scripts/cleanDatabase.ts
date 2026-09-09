@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { env } from '../config/env';
+import { connectDB } from '../config/db';
 
 // Import all models to ensure they are registered and we can drop their collections
 import { User } from '../models/User';
@@ -12,8 +13,7 @@ import { Progress } from '../models/Progress';
 async function cleanDatabase() {
   try {
     console.log('Connecting to database...');
-    await mongoose.connect(env.MONGODB_URI);
-    console.log('Connected to MongoDB.');
+    await connectDB();
 
     console.log('Cleaning database collections...');
     

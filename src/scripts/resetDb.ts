@@ -4,11 +4,12 @@
  */
 import mongoose from "mongoose";
 import { env } from "../config/env";
+import { connectDB } from "../config/db";
 
 async function resetDb() {
   try {
-    console.log(`Connecting to ${env.MONGODB_URI}...`);
-    await mongoose.connect(env.MONGODB_URI);
+    console.log(`Connecting to database...`);
+    await connectDB();
     
     console.log("Dropping database...");
     if (mongoose.connection.db) {
