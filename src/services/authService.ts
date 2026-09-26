@@ -66,8 +66,8 @@ export async function userSignup(
     
     try {
       await sendVerificationEmail(email, code);
-    } catch (error) {
-      throw createApiError(500, "Failed to send verification email. Please check your SMTP configuration.");
+    } catch (error: any) {
+      throw createApiError(500, `Failed to send verification email: ${error?.message || "Please check email configuration."}`);
     }
     return { success: true, message: "Verification code sent" };
   }
@@ -88,8 +88,8 @@ export async function userSignup(
 
   try {
     await sendVerificationEmail(email, code);
-  } catch (error) {
-    throw createApiError(500, "Failed to send verification email. Please check your SMTP configuration. If using Gmail, you MUST use an App Password, not your normal password.");
+  } catch (error: any) {
+    throw createApiError(500, `Failed to send verification email: ${error?.message || "Please check email configuration."}`);
   }
 
   return { success: true, message: "Verification code sent" };
@@ -146,7 +146,11 @@ export async function resendVerificationCode(email: string): Promise<{ success: 
   user.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
   await user.save();
 
-  await sendVerificationEmail(email, code);
+  try {
+    await sendVerificationEmail(email, code);
+  } catch (error: any) {
+    throw createApiError(500, `Failed to send verification email: ${error?.message || "Please check email configuration."}`);
+  }
   
   return { success: true, message: "New verification code sent" };
 }

@@ -25,10 +25,11 @@ const envSchema = z.object({
   R2_BUCKET_NAME: z.string().optional(),
   R2_PUBLIC_URL: z.string().url().optional(),
   R2_PRESIGN_EXPIRY_SECONDS: z.string().default("3600"),
-  // Email Service
-  SMTP_USER: z.string().email().optional(),
+  // Email Service (Resend)
+  RESEND_API_KEY: z.string().optional(),
+  FROM_EMAIL: z.string().optional(),
+  SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  FROM_EMAIL: z.string().email().optional(),
 });
 
 export const parsed = envSchema.safeParse(process.env);
