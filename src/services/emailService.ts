@@ -18,7 +18,12 @@ export async function sendVerificationEmail(email: string, code: string): Promis
   }
 
   const resend = new Resend(env.RESEND_API_KEY);
-  const fromAddress = env.FROM_EMAIL || 'VeoLMS <onboarding@resend.dev>';
+
+  let fromAddress = env.FROM_EMAIL || 'VeoLMS <onboarding@resend.dev>';
+  if (/@(gmail|yahoo|outlook|hotmail)\.com/i.test(fromAddress)) {
+    console.warn(`[EmailService] Cannot use public email domain (${fromAddress}) as sender in Resend. Falling back to VeoLMS <onboarding@resend.dev>`);
+    fromAddress = 'VeoLMS <onboarding@resend.dev>';
+  }
 
   try {
     const { data, error } = await resend.emails.send({
