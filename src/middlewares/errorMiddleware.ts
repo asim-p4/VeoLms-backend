@@ -58,6 +58,9 @@ export const errorHandler = (
     } else if (anyErr.name === "TokenExpiredError") {
       statusCode = 401;
       message = "Token expired";
+    } else if ((err as any).type?.startsWith("Stripe") || (err as any).rawType || anyErr.name === "StripeError") {
+      statusCode = (err as any).statusCode || 400;
+      message = anyErr.message;
     } else {
       // Unknown programmer error — hide internal details in production
       message = "Internal server error";

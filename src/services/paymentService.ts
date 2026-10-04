@@ -23,6 +23,10 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY || "");
  * @param origin - Origin URL (e.g. http://localhost:5173) for success/cancel redirects
  */
 export async function createCheckoutSession(userId: string, courseId: string, origin: string) {
+  if (!env.STRIPE_SECRET_KEY) {
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "Stripe payment is not configured. Please set STRIPE_SECRET_KEY in your server environment.");
+  }
+
   const course = await Course.findById(courseId);
   if (!course) {
     throw createApiError(HTTP_STATUS.NOT_FOUND, "Course not found");
@@ -39,45 +43,57 @@ export async function createCheckoutSession(userId: string, courseId: string, or
   }
 
   const amountToCharge = course.discountPrice || course.price;
+  const unitAmount = Math.max(50, Math.round(amountToCharge)); // Stripe requires integer >= 50 cents
   const paymentId = new Types.ObjectId();
 
   // Purge any legacy orphaned records that had hardcoded pending_session
   await Payment.deleteMany({ stripePaymentIntentId: "pending_session" }).catch(() => {});
 
+  // Stripe requires images to be absolute public HTTPS URLs (no relative paths, no localhost)
+  const images = (course.thumbnail && course.thumbnail.startsWith("https://") && !course.thumbnail.includes("localhost"))
+    ? [course.thumbnail]
+    : [];
+
   // Create Stripe Checkout Session FIRST
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "payment",
-    success_url: `${origin}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/courses/${course.slug || course._id}?canceled=true`,
-    client_reference_id: userId,
-    metadata: {
-      courseId: courseId,
-      userId: userId,
-      paymentId: paymentId.toString(),
-    },
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: course.title,
-            description: course.description || undefined,
-            images: course.thumbnail ? [course.thumbnail] : [],
-          },
-          unit_amount: amountToCharge, // Amount is in cents
-        },
-        quantity: 1,
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      success_url: `${origin}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/courses/${course.slug || course._id}?canceled=true`,
+      client_reference_id: userId,
+      metadata: {
+        courseId: courseId,
+        userId: userId,
+        paymentId: paymentId.toString(),
       },
-    ],
-  });
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: course.title,
+              description: course.description || undefined,
+              images: images,
+            },
+            unit_amount: unitAmount,
+          },
+          quantity: 1,
+        },
+      ],
+    });
+  } catch (err: any) {
+    console.error("[PaymentService] Stripe session creation failed:", err?.message || err);
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, `Payment initialization failed: ${err?.message || "Stripe checkout error"}`);
+  }
 
   // Create payment record in DB with the unique Stripe Session ID
   await Payment.create({
     _id: paymentId,
     user: new Types.ObjectId(userId),
     course: new Types.ObjectId(courseId),
-    amount: amountToCharge,
+    amount: unitAmount,
     currency: "usd",
     stripePaymentIntentId: session.id,
     status: "pending",
