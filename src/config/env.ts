@@ -25,9 +25,11 @@ const envSchema = z.object({
   R2_BUCKET_NAME: z.string().optional(),
   R2_PUBLIC_URL: z.string().url().optional(),
   R2_PRESIGN_EXPIRY_SECONDS: z.string().default("3600"),
-  // Email Service (Resend)
+  // Email Service (Brevo / Resend)
+  BREVO_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   FROM_EMAIL: z.string().optional(),
+  FROM_NAME: z.string().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
 });
