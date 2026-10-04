@@ -21,6 +21,7 @@ import { resolveVideoUrl } from "../services/videoService";
 import { createApiError } from "../utils/ApiError";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import { getObjectStream } from "../services/storageService";
 
 /**
  * GET /api/lessons/:id
@@ -49,11 +50,19 @@ export const getLessonForStudent = asyncHandler(
       }
     }
 
-    // Resolve video URL (presign if R2 key, pass-through if public URL)
-    let videoUrl = await resolveVideoUrl(lesson.videoUrl);
+    // Resolve video URL: if it's an HLS video in R2, stream through our backend route
+    let videoUrl = lesson.videoUrl;
+    if (lesson.videoUrl && lesson.videoUrl.includes(".m3u8")) {
+      const match = lesson.videoUrl.match(/videos\/([^/?]+)\/([^/?]+)/);
+      if (match) {
+        videoUrl = `/api/lessons/stream/${match[1]}/${match[2]}`;
+      } else {
+        videoUrl = await resolveVideoUrl(lesson.videoUrl);
+      }
+    } else {
+      videoUrl = await resolveVideoUrl(lesson.videoUrl);
+    }
 
-    // If we have an HLS_AUTH_SECRET, we will generate a token
-    // We will return the token in the JSON response so the frontend can send it via the Authorization header!
     let hlsToken;
     if (env.HLS_AUTH_SECRET) {
       hlsToken = jwt.sign(
@@ -61,16 +70,6 @@ export const getLessonForStudent = asyncHandler(
         env.HLS_AUTH_SECRET,
         { expiresIn: "2h" }
       );
-
-      // If it's an HLS master playlist, we don't need a presigned URL, we need the Worker URL!
-      // But since we are saving the raw key (videos/123/master.m3u8), we can just replace the R2 domain with our Worker domain if configured.
-      // For now, if it ends with m3u8, we assume the frontend hls.js will hit the Cloudflare Worker URL directly.
-      // We will just pass the raw URL/key to the frontend so it knows it's HLS.
-      if (lesson.videoUrl.endsWith(".m3u8")) {
-        // If the backend has a PUBLIC R2 URL configured that points to the worker, use it.
-        // Otherwise, send the raw key and let the frontend prepend the Worker URL.
-        videoUrl = env.R2_PUBLIC_URL ? `${env.R2_PUBLIC_URL}/${lesson.videoUrl}` : lesson.videoUrl;
-      }
     }
 
     // Return lesson data with resolved video URL
@@ -78,10 +77,57 @@ export const getLessonForStudent = asyncHandler(
       ApiResponse(HTTP_STATUS.OK, "Lesson fetched successfully", {
         lesson: {
           ...lesson.toObject(),
-          videoUrl, // overwrite with presigned URL or Worker URL
+          videoUrl,
         },
         hlsToken
       }),
     );
+  },
+);
+
+/**
+ * GET /api/lessons/stream/:folderId/:filename
+ * Streams HLS playlists (.m3u8) and video segment chunks (.ts) directly from private R2 storage.
+ */
+export const streamLessonVideo = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { folderId, filename } = req.params;
+    const key = `videos/${folderId}/${filename}`;
+
+    try {
+      const response = await getObjectStream(key);
+
+      const ext = filename.split(".").pop()?.toLowerCase();
+      let contentType = response.ContentType;
+      if (ext === "m3u8") {
+        contentType = "application/vnd.apple.mpegurl";
+      } else if (ext === "ts") {
+        contentType = "video/MP2T";
+      }
+
+      res.status(200);
+      res.set({
+        "Content-Length": response.ContentLength?.toString(),
+        "Content-Type": contentType || "application/octet-stream",
+        "Cache-Control": ext === "m3u8" ? "no-cache" : "public, max-age=31536000, immutable",
+        "Cross-Origin-Resource-Policy": "cross-origin",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      });
+
+      if (response.Body) {
+        (response.Body as any).pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (err: any) {
+      if (err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        res.status(HTTP_STATUS.NOT_FOUND).json(
+          ApiResponse(HTTP_STATUS.NOT_FOUND, "Media chunk not found"),
+        );
+        return;
+      }
+      throw err;
+    }
   },
 );

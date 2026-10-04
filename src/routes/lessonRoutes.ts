@@ -5,11 +5,14 @@
  */
 import { Router } from "express";
 import { auth } from "../middlewares/authMiddleware";
-import { getLessonForStudent } from "../controllers/lessonController";
+import { getLessonForStudent, streamLessonVideo } from "../controllers/lessonController";
 
 const router = Router();
 
-// All lesson access requires authentication
+// Public media stream route for HLS video chunks (served with CORS and proper MIME types)
+router.get("/stream/:folderId/:filename", streamLessonVideo);
+
+// All lesson metadata access requires authentication
 router.use(auth);
 
 /**
