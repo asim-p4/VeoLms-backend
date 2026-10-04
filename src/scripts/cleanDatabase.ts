@@ -9,6 +9,7 @@ import { Section } from '../models/Section';
 import { Lesson } from '../models/Lesson';
 import { Enrollment } from '../models/Entrollment';
 import { Progress } from '../models/Progress';
+import { Payment } from '../models/Payment';
 
 async function cleanDatabase() {
   try {
@@ -24,7 +25,8 @@ async function cleanDatabase() {
       Section.deleteMany({}),
       Lesson.deleteMany({}),
       Enrollment.deleteMany({}),
-      Progress.deleteMany({})
+      Progress.deleteMany({}),
+      Payment.deleteMany({})
     ]);
 
     console.log('✅ Database successfully cleaned. All data removed.');

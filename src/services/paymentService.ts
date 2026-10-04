@@ -10,7 +10,7 @@ import { Course } from "../models/Course";
 import { createApiError } from "../utils/ApiError";
 import { HTTP_STATUS } from "../constants/httpStatus";
 import { Types } from "mongoose";
-import { enroll } from "./enrollmentService";
+import { enroll, checkEnrollment } from "./enrollmentService";
 import Stripe from "stripe";
 import { env } from "../config/env";
 
@@ -32,30 +32,29 @@ export async function createCheckoutSession(userId: string, courseId: string, or
     throw createApiError(HTTP_STATUS.BAD_REQUEST, "Course is free. No payment required.");
   }
 
+  // Prevent double purchases if already enrolled
+  const isEnrolled = await checkEnrollment(userId, courseId);
+  if (isEnrolled) {
+    throw createApiError(HTTP_STATUS.BAD_REQUEST, "You are already enrolled in this course");
+  }
+
   const amountToCharge = course.discountPrice || course.price;
+  const paymentId = new Types.ObjectId();
 
-  // Create pending payment record in DB
-  const payment = await Payment.create({
-    user: new Types.ObjectId(userId),
-    course: new Types.ObjectId(courseId),
-    amount: amountToCharge,
-    currency: "usd",
-    stripePaymentIntentId: "pending_session", // Will update via webhook or we can store session ID
-    status: "pending",
-  });
+  // Purge any legacy orphaned records that had hardcoded pending_session
+  await Payment.deleteMany({ stripePaymentIntentId: "pending_session" }).catch(() => {});
 
-  // Create Stripe Checkout Session
+  // Create Stripe Checkout Session FIRST
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "payment",
     success_url: `${origin}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/courses/${course.slug || course._id}?canceled=true`,
-    customer_email: undefined, // Ideally fetch user's email if available, or omit
     client_reference_id: userId,
     metadata: {
       courseId: courseId,
       userId: userId,
-      paymentId: payment._id.toString(),
+      paymentId: paymentId.toString(),
     },
     line_items: [
       {
@@ -63,19 +62,26 @@ export async function createCheckoutSession(userId: string, courseId: string, or
           currency: "usd",
           product_data: {
             name: course.title,
-            description: course.description,
+            description: course.description || undefined,
             images: course.thumbnail ? [course.thumbnail] : [],
           },
-          unit_amount: amountToCharge, // Amount is already in paise
+          unit_amount: amountToCharge, // Amount is in cents
         },
         quantity: 1,
       },
     ],
   });
 
-  // Update payment record with the Stripe Session ID
-  payment.stripePaymentIntentId = session.id;
-  await payment.save();
+  // Create payment record in DB with the unique Stripe Session ID
+  await Payment.create({
+    _id: paymentId,
+    user: new Types.ObjectId(userId),
+    course: new Types.ObjectId(courseId),
+    amount: amountToCharge,
+    currency: "usd",
+    stripePaymentIntentId: session.id,
+    status: "pending",
+  });
 
   return {
     checkoutUrl: session.url,
