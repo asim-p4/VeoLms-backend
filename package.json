@@ -1,7 +1,7 @@
 {
-  "name": "veolms-backend",
+  "name": "futurelms-backend",
   "version": "1.0.0",
-  "description": "VeoLMS - Learning Management System Backend",
+  "description": "FutureLMS - Learning Management System Backend",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx --watch --env-file=.env src/server.ts",

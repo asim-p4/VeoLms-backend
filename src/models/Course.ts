@@ -1,6 +1,6 @@
 /**
  * @fileoverview Course Mongoose Model
- * Represents a course on the VeoLMS platform.
+ * Represents a course on the FutureLMS platform.
  *
  * DESIGN DECISIONS:
  * - Slug is auto-generated from title at creation time and is immutable.

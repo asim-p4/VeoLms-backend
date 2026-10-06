@@ -1,5 +1,5 @@
 /**
- * Script to wipe the entire MongoDB database (veolms).
+ * Script to wipe the entire MongoDB database (FutureLMS).
  * Run using: tsx src/scripts/resetDb.ts
  */
 import mongoose from "mongoose";
